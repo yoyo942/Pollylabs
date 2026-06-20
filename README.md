@@ -10,6 +10,11 @@ and triage them into a to-do list — Tinder-style.
 - **To-do** — everything you kept. Tick items off when done, or set a target
   completion date. Overdue items are highlighted.
 - **Archive** — items you swiped away, with the option to restore them.
+- **Admin** — set a **time of day** for the app to auto-refresh your Fireflies meetings
+  and rebuild the review deck. Toggle a browser notification that tells you how many new
+  action items are waiting, choose how many recent meetings to scan, run a review on
+  demand ("Run now"), and manage the Fireflies connection. The scheduled run fires while
+  the app is open in a browser tab.
 
 ## How it works
 

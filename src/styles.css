@@ -260,6 +260,55 @@ button { font-family: inherit; cursor: pointer; }
 .link-btn:hover { color: var(--text); }
 .link-btn.danger:hover { color: var(--archive); }
 
+/* ---------- admin ---------- */
+.admin { overflow-y: auto; padding-bottom: 24px; }
+.admin-section {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 16px; padding: 18px; margin-bottom: 14px;
+}
+.admin-title { margin: 0 0 4px; font-size: 16px; }
+.admin-note { margin: 0 0 14px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+.admin-error { color: #fecaca; font-size: 12px; margin: 4px 0 0; }
+.admin-sub-line { font-size: 12px; color: var(--muted); margin: 10px 0 0; text-align: center; }
+
+.setting-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 12px 0; border-top: 1px solid var(--line);
+}
+.setting-row:first-of-type { border-top: none; }
+.setting-row.muted { opacity: 0.5; }
+.setting-label { font-size: 15px; font-weight: 600; }
+.setting-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+.switch {
+  flex: none; width: 48px; height: 28px; border-radius: 16px;
+  background: var(--surface-2); border: 1px solid var(--line);
+  position: relative; transition: background 0.18s;
+}
+.switch.on { background: var(--add); border-color: var(--add); }
+.switch .knob {
+  position: absolute; top: 2px; left: 2px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; transition: transform 0.18s;
+}
+.switch.on .knob { transform: translateX(20px); }
+.switch:disabled { opacity: 0.5; }
+
+.time-input, .num-input {
+  background: var(--surface-2); border: 1px solid var(--line); color: var(--text);
+  border-radius: 10px; padding: 8px 12px; font-size: 14px; font-weight: 600;
+}
+.time-input:disabled { opacity: 0.5; }
+.num-input { padding-right: 8px; }
+
+.run-now { margin-top: 16px; }
+.danger-btn {
+  width: 100%; margin-top: 12px; padding: 12px;
+  background: transparent; border: 1px solid rgba(248, 113, 113, 0.5);
+  color: var(--archive); border-radius: 12px; font-size: 14px; font-weight: 700;
+}
+.danger-btn:active { transform: scale(0.98); }
+
 /* ---------- gate ---------- */
 .gate {
   min-height: 100%; display: flex; align-items: center; justify-content: center;

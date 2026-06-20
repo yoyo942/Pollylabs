@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchCurrentUser, fetchTranscripts } from './api/fireflies.js'
 import { matchesUser, parseActionItems } from './lib/parse.js'
 import { useLocalStorage } from './lib/useLocalStorage.js'
@@ -6,46 +6,106 @@ import ApiKeyGate from './components/ApiKeyGate.jsx'
 import CardDeck from './components/CardDeck.jsx'
 import TodoList from './components/TodoList.jsx'
 import ArchiveList from './components/ArchiveList.jsx'
+import AdminScreen from './components/AdminScreen.jsx'
 
 const TABS = [
   { id: 'review', label: 'Review' },
   { id: 'todo', label: 'To-do' },
-  { id: 'archive', label: 'Archive' }
+  { id: 'archive', label: 'Archive' },
+  { id: 'admin', label: 'Admin' }
 ]
+
+const DEFAULT_SCHEDULE = { enabled: false, time: '09:00', notify: false, fetchLimit: 30 }
+
+// Milliseconds until the next occurrence of HH:mm (today if still ahead, else tomorrow).
+function msUntilNext(time) {
+  const [h, m] = (time || '09:00').split(':').map(Number)
+  const now = new Date()
+  const next = new Date(now)
+  next.setHours(h || 0, m || 0, 0, 0)
+  if (next <= now) next.setDate(next.getDate() + 1)
+  return { delay: next - now, at: next }
+}
 
 export default function App() {
   const [apiKey, setApiKey] = useLocalStorage('ff_api_key', '')
   const [user, setUser] = useLocalStorage('ff_user', null)
   const [triage, setTriage] = useLocalStorage('ff_triage', {})
   const [onlyMine, setOnlyMine] = useLocalStorage('ff_only_mine', false)
+  const [schedule, setSchedule] = useLocalStorage('ff_schedule', DEFAULT_SCHEDULE)
+  const [lastRun, setLastRun] = useLocalStorage('ff_last_run', null)
 
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [tab, setTab] = useState('review')
 
-  const load = useCallback(async (key) => {
-    if (!key) return
-    setLoading(true)
-    setError(null)
-    try {
-      const [me, transcripts] = await Promise.all([
-        fetchCurrentUser(key).catch(() => null),
-        fetchTranscripts(key, 30)
-      ])
-      if (me) setUser(me)
-      const parsed = transcripts.flatMap(parseActionItems)
-      setItems(parsed)
-    } catch (e) {
-      setError(e.message || 'Failed to load meetings from Fireflies.')
-    } finally {
-      setLoading(false)
-    }
-  }, [setUser])
+  const load = useCallback(
+    async (key, limit = 30) => {
+      if (!key) return []
+      setLoading(true)
+      setError(null)
+      try {
+        const [me, transcripts] = await Promise.all([
+          fetchCurrentUser(key).catch(() => null),
+          fetchTranscripts(key, limit)
+        ])
+        if (me) setUser(me)
+        const parsed = transcripts.flatMap(parseActionItems)
+        setItems(parsed)
+        return parsed
+      } catch (e) {
+        setError(e.message || 'Failed to load meetings from Fireflies.')
+        return []
+      } finally {
+        setLoading(false)
+      }
+    },
+    [setUser]
+  )
 
   useEffect(() => {
-    if (apiKey) load(apiKey)
-  }, [apiKey, load])
+    if (apiKey) load(apiKey, schedule.fetchLimit)
+  }, [apiKey, load, schedule.fetchLimit])
+
+  // Keep the latest triage map available to the scheduler without re-arming it.
+  const triageRef = useRef(triage)
+  useEffect(() => {
+    triageRef.current = triage
+  }, [triage])
+
+  const runReview = useCallback(
+    async (limit) => {
+      const parsed = await load(apiKey, limit ?? schedule.fetchLimit)
+      setLastRun(new Date().toISOString())
+      const fresh = parsed.filter((it) => !triageRef.current[it.id]).length
+      if (schedule.notify && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification('Fireflies Action Cards', {
+          body:
+            fresh > 0
+              ? `${fresh} new action item${fresh === 1 ? '' : 's'} to review`
+              : 'No new action items — all caught up'
+        })
+      }
+      return fresh
+    },
+    [apiKey, load, schedule.fetchLimit, schedule.notify, setLastRun]
+  )
+
+  // Daily auto-run. Only active while the app is open in a tab.
+  useEffect(() => {
+    if (!schedule.enabled || !apiKey) return
+    let timer
+    const arm = () => {
+      const { delay } = msUntilNext(schedule.time)
+      timer = setTimeout(async () => {
+        await runReview()
+        arm() // schedule the following day
+      }, delay)
+    }
+    arm()
+    return () => clearTimeout(timer)
+  }, [schedule.enabled, schedule.time, apiKey, runReview])
 
   const handleConnect = (key) => setApiKey(key.trim())
   const handleDisconnect = () => {
@@ -170,7 +230,13 @@ export default function App() {
       <nav className="tabs">
         {TABS.map((t) => {
           const count =
-            t.id === 'review' ? queue.length : t.id === 'todo' ? todoCount : archiveEntries.length
+            t.id === 'review'
+              ? queue.length
+              : t.id === 'todo'
+                ? todoCount
+                : t.id === 'archive'
+                  ? archiveEntries.length
+                  : 0
           return (
             <button
               key={t.id}
@@ -216,6 +282,19 @@ export default function App() {
 
         {tab === 'archive' && (
           <ArchiveList entries={archiveEntries} onRestore={moveToTodo} onDelete={removeEntry} />
+        )}
+
+        {tab === 'admin' && (
+          <AdminScreen
+            schedule={schedule}
+            onChange={(changes) => setSchedule((prev) => ({ ...prev, ...changes }))}
+            lastRun={lastRun}
+            user={user}
+            loading={loading}
+            onRunNow={() => runReview()}
+            onDisconnect={handleDisconnect}
+            nextRunAt={schedule.enabled ? msUntilNext(schedule.time).at.toISOString() : null}
+          />
         )}
       </main>
     </div>
