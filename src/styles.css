@@ -260,6 +260,48 @@ button { font-family: inherit; cursor: pointer; }
 .link-btn:hover { color: var(--text); }
 .link-btn.danger:hover { color: var(--archive); }
 
+/* ---------- priority ---------- */
+.chip.prio.high { background: #ef4444; border-color: #ef4444; color: #fff; }
+.chip.prio.medium { background: rgba(251, 191, 36, 0.16); border-color: rgba(251, 191, 36, 0.5); color: var(--warn); }
+
+.card.prio-high { border-color: rgba(239, 68, 68, 0.7); box-shadow: var(--shadow), 0 0 0 1px rgba(239, 68, 68, 0.4); }
+.card.prio-medium { border-color: rgba(251, 191, 36, 0.5); }
+
+.todo.prio-high { border-left: 3px solid #ef4444; }
+.todo.prio-medium { border-left: 3px solid var(--warn); }
+
+.prio-pill {
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--muted);
+  border-radius: 20px; padding: 2px 9px; font-size: 11px; font-weight: 700;
+}
+.prio-pill.high { background: #ef4444; border-color: #ef4444; color: #fff; }
+.prio-pill.medium { background: rgba(251, 191, 36, 0.16); border-color: rgba(251, 191, 36, 0.5); color: var(--warn); }
+
+/* ---------- focus rules ---------- */
+.rules { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.rules-empty { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.5; }
+.rule { display: flex; gap: 8px; align-items: center; }
+.rule-text {
+  flex: 1; min-width: 0; background: var(--surface-2); border: 1px solid var(--line);
+  color: var(--text); border-radius: 10px; padding: 9px 12px; font-size: 14px;
+}
+.rule-text:focus { outline: none; border-color: var(--accent); }
+.rule-level {
+  background: var(--surface-2); border: 1px solid var(--line); color: var(--text);
+  border-radius: 10px; padding: 9px 8px; font-size: 13px; font-weight: 600;
+}
+.rule-del {
+  flex: none; width: 34px; height: 34px; border-radius: 10px;
+  background: transparent; border: 1px solid var(--line); color: var(--muted); font-size: 13px;
+}
+.rule-del:hover { color: var(--archive); border-color: rgba(248, 113, 113, 0.5); }
+.add-rule-btn {
+  width: 100%; padding: 10px; border-radius: 11px; margin-bottom: 4px;
+  background: var(--surface-2); border: 1px dashed var(--line); color: var(--text);
+  font-size: 14px; font-weight: 600;
+}
+.add-rule-btn:hover { border-color: var(--accent); color: var(--accent); }
+
 /* ---------- admin ---------- */
 .admin { overflow-y: auto; padding-bottom: 24px; }
 .admin-section {

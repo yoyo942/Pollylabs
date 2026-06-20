@@ -1,3 +1,5 @@
+import { LEVEL_LABEL, nextLevel } from '../lib/priority.js'
+
 function fmt(iso) {
   if (!iso) return ''
   const d = new Date(iso)
@@ -13,7 +15,7 @@ function todayISO() {
   return `${y}-${m}-${day}`
 }
 
-export default function TodoList({ entries, onToggleDone, onSetDue, onArchive, onDelete }) {
+export default function TodoList({ entries, onToggleDone, onSetDue, onSetPriority, onArchive, onDelete }) {
   if (entries.length === 0) {
     return (
       <div className="empty">
@@ -32,8 +34,12 @@ export default function TodoList({ entries, onToggleDone, onSetDue, onArchive, o
         const done = e.status === 'done'
         const overdue = !done && e.dueDate && e.dueDate < today
         const item = e.item
+        const level = e.priority || 'normal'
         return (
-          <li key={item.id} className={`todo ${done ? 'done' : ''} ${overdue ? 'overdue' : ''}`}>
+          <li
+            key={item.id}
+            className={`todo ${done ? 'done' : ''} ${overdue ? 'overdue' : ''} prio-${level}`}
+          >
             <button
               className={`check ${done ? 'on' : ''}`}
               onClick={() => onToggleDone(item.id)}
@@ -45,6 +51,14 @@ export default function TodoList({ entries, onToggleDone, onSetDue, onArchive, o
             <div className="todo-body">
               <p className="todo-text">{item.text}</p>
               <div className="todo-meta">
+                <button
+                  className={`prio-pill ${level}`}
+                  onClick={() => onSetPriority(item.id, nextLevel(level))}
+                  title="Tap to change priority"
+                >
+                  {level === 'high' ? '★ ' : ''}
+                  {LEVEL_LABEL[level]}
+                </button>
                 <span className="todo-meeting">{item.meeting.title}</span>
                 {item.assignee && <span className="dot-sep">·</span>}
                 {item.assignee && <span>@{item.assignee}</span>}

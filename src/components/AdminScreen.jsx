@@ -1,5 +1,9 @@
 import { useState } from 'react'
 
+function newId() {
+  return (crypto?.randomUUID?.() || `r${Date.now()}${Math.random().toString(36).slice(2, 7)}`)
+}
+
 function Switch({ on, onToggle, disabled }) {
   return (
     <button
@@ -29,6 +33,8 @@ function fmtDateTime(iso) {
 export default function AdminScreen({
   schedule,
   onChange,
+  priority,
+  onPriorityChange,
   lastRun,
   user,
   loading,
@@ -37,6 +43,13 @@ export default function AdminScreen({
   nextRunAt
 }) {
   const [notifyError, setNotifyError] = useState(null)
+
+  const rules = priority?.rules || []
+  const setRules = (next) => onPriorityChange({ rules: next })
+  const addRule = () => setRules([...rules, { id: newId(), text: '', level: 'high' }])
+  const updateRule = (id, changes) =>
+    setRules(rules.map((r) => (r.id === id ? { ...r, ...changes } : r)))
+  const removeRule = (id) => setRules(rules.filter((r) => r.id !== id))
 
   const handleNotify = async (on) => {
     setNotifyError(null)
@@ -59,6 +72,59 @@ export default function AdminScreen({
 
   return (
     <div className="admin">
+      <section className="admin-section">
+        <h2 className="admin-title">Focus &amp; priorities</h2>
+        <p className="admin-note">
+          Add focus prompts — a keyword or phrase that matters to you. Any action item whose
+          text, meeting, or assignee matches a prompt is flagged at that priority and floated to
+          the top of the review deck and your to-do list.
+        </p>
+
+        <div className="rules">
+          {rules.length === 0 && (
+            <p className="rules-empty">
+              No focus prompts yet. Add one like “invoice”, “client launch”, or a person’s name.
+            </p>
+          )}
+          {rules.map((r) => (
+            <div className="rule" key={r.id}>
+              <input
+                className="rule-text"
+                placeholder="e.g. client launch, security, Bruna…"
+                value={r.text}
+                onChange={(e) => updateRule(r.id, { text: e.target.value })}
+              />
+              <select
+                className="rule-level"
+                value={r.level}
+                onChange={(e) => updateRule(r.id, { level: e.target.value })}
+              >
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+              </select>
+              <button className="rule-del" onClick={() => removeRule(r.id)} aria-label="Remove">
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+        <button className="add-rule-btn" onClick={addRule}>
+          + Add focus prompt
+        </button>
+
+        <div className="setting-row">
+          <div>
+            <div className="setting-label">My items are high priority</div>
+            <div className="setting-sub">Action items assigned to you jump to High</div>
+          </div>
+          <Switch
+            on={!!priority?.mineHigh}
+            onToggle={(v) => onPriorityChange({ mineHigh: v })}
+            disabled={!user}
+          />
+        </div>
+      </section>
+
       <section className="admin-section">
         <h2 className="admin-title">Daily review</h2>
         <p className="admin-note">

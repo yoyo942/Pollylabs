@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchCurrentUser, fetchTranscripts } from './api/fireflies.js'
 import { matchesUser, parseActionItems } from './lib/parse.js'
+import { LEVEL_RANK, computePriority } from './lib/priority.js'
 import { useLocalStorage } from './lib/useLocalStorage.js'
 import ApiKeyGate from './components/ApiKeyGate.jsx'
 import CardDeck from './components/CardDeck.jsx'
@@ -34,6 +35,7 @@ export default function App() {
   const [onlyMine, setOnlyMine] = useLocalStorage('ff_only_mine', false)
   const [schedule, setSchedule] = useLocalStorage('ff_schedule', DEFAULT_SCHEDULE)
   const [lastRun, setLastRun] = useLocalStorage('ff_last_run', null)
+  const [priority, setPriorityCfg] = useLocalStorage('ff_priority', { rules: [], mineHigh: false })
 
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(false)
@@ -118,29 +120,53 @@ export default function App() {
   const queue = useMemo(() => {
     let q = items.filter((it) => !triage[it.id])
     if (onlyMine && user) q = q.filter((it) => matchesUser(it, user))
-    // Time-sensitive items first, then most recent meetings.
+    // Tag each card with its computed priority from the focus rules.
+    q = q.map((it) => ({
+      ...it,
+      priority: computePriority(it, priority.rules, {
+        mineHigh: priority.mineHigh,
+        isMine: matchesUser(it, user)
+      })
+    }))
+    // Highest priority first, then time-sensitive, then most recent meetings.
     return q.sort((a, b) => {
+      if (LEVEL_RANK[a.priority] !== LEVEL_RANK[b.priority]) {
+        return LEVEL_RANK[b.priority] - LEVEL_RANK[a.priority]
+      }
       if (a.timely !== b.timely) return a.timely ? -1 : 1
       const da = a.meeting.date ? Date.parse(a.meeting.date) : 0
       const db = b.meeting.date ? Date.parse(b.meeting.date) : 0
       return db - da
     })
-  }, [items, triage, onlyMine, user])
+  }, [items, triage, onlyMine, user, priority])
 
   const todoEntries = useMemo(
     () =>
       Object.values(triage)
         .filter((e) => e.status === 'todo' || e.status === 'done')
+        // Effective priority: a manual override wins, else recompute from rules.
+        .map((e) => ({
+          ...e,
+          priority:
+            e.priority ||
+            computePriority(e.item, priority.rules, {
+              mineHigh: priority.mineHigh,
+              isMine: matchesUser(e.item, user)
+            })
+        }))
         .sort((a, b) => {
           if ((a.status === 'done') !== (b.status === 'done')) {
             return a.status === 'done' ? 1 : -1
+          }
+          if (LEVEL_RANK[a.priority] !== LEVEL_RANK[b.priority]) {
+            return LEVEL_RANK[b.priority] - LEVEL_RANK[a.priority]
           }
           const da = a.dueDate ? Date.parse(a.dueDate) : Infinity
           const db = b.dueDate ? Date.parse(b.dueDate) : Infinity
           if (da !== db) return da - db
           return Date.parse(b.addedAt) - Date.parse(a.addedAt)
         }),
-    [triage]
+    [triage, priority, user]
   )
 
   const archiveEntries = useMemo(
@@ -154,18 +180,23 @@ export default function App() {
   // --- triage actions ---
   const decide = useCallback(
     (item, status) => {
+      const level = computePriority(item, priority.rules, {
+        mineHigh: priority.mineHigh,
+        isMine: matchesUser(item, user)
+      })
       setTriage((prev) => ({
         ...prev,
         [item.id]: {
           status,
           item,
+          priority: level,
           addedAt: new Date().toISOString(),
           dueDate: status === 'todo' ? item.suggestedDue || null : null,
           completedAt: null
         }
       }))
     },
-    [setTriage]
+    [setTriage, priority, user]
   )
 
   const patch = useCallback(
@@ -188,6 +219,8 @@ export default function App() {
   )
 
   const setDue = useCallback((id, dueDate) => patch(id, { dueDate: dueDate || null }), [patch])
+
+  const setItemPriority = useCallback((id, level) => patch(id, { priority: level }), [patch])
 
   const moveToTodo = useCallback((id) => patch(id, { status: 'todo' }), [patch])
 
@@ -275,6 +308,7 @@ export default function App() {
             entries={todoEntries}
             onToggleDone={toggleDone}
             onSetDue={setDue}
+            onSetPriority={setItemPriority}
             onArchive={(id) => patch(id, { status: 'archived' })}
             onDelete={removeEntry}
           />
@@ -288,6 +322,8 @@ export default function App() {
           <AdminScreen
             schedule={schedule}
             onChange={(changes) => setSchedule((prev) => ({ ...prev, ...changes }))}
+            priority={priority}
+            onPriorityChange={(changes) => setPriorityCfg((prev) => ({ ...prev, ...changes }))}
             lastRun={lastRun}
             user={user}
             loading={loading}

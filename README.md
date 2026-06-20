@@ -10,11 +10,20 @@ and triage them into a to-do list — Tinder-style.
 - **To-do** — everything you kept. Tick items off when done, or set a target
   completion date. Overdue items are highlighted.
 - **Archive** — items you swiped away, with the option to restore them.
-- **Admin** — set a **time of day** for the app to auto-refresh your Fireflies meetings
-  and rebuild the review deck. Toggle a browser notification that tells you how many new
-  action items are waiting, choose how many recent meetings to scan, run a review on
-  demand ("Run now"), and manage the Fireflies connection. The scheduled run fires while
-  the app is open in a browser tab.
+- **Admin** —
+  - **Focus & priorities:** add focus prompts (a keyword, phrase, project, or person's name),
+    each tagged **High** or **Medium**. Any action item whose text, meeting, or assignee
+    matches is flagged at that priority and floated to the top of the review deck and to-do
+    list. A toggle can make all your own action items High. Every card and to-do item shows a
+    priority badge, and you can tap a to-do's badge to override its priority.
+  - **Daily review:** set a **time of day** for the app to auto-refresh your Fireflies meetings
+    and rebuild the review deck. Toggle a browser notification that tells you how many new
+    action items are waiting, choose how many recent meetings to scan, run a review on
+    demand ("Run now"), and manage the Fireflies connection. The scheduled run fires while
+    the app is open in a browser tab.
+
+Focus matching is plain keyword/phrase matching evaluated in the browser — no backend, no
+external calls beyond Fireflies.
 
 ## How it works
 

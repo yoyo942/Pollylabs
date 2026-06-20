@@ -84,10 +84,12 @@ function SwipeCard({ item, onDecide, depth }) {
 
   const intent = dx > 30 ? 'add' : dx < -30 ? 'archive' : null
 
+  const prio = item.priority && item.priority !== 'normal' ? item.priority : null
+
   return (
     <article
       ref={ref}
-      className={`card ${isTop ? 'top' : 'stacked'} ${animate ? 'animate' : ''}`}
+      className={`card ${isTop ? 'top' : 'stacked'} ${animate ? 'animate' : ''} ${prio ? `prio-${prio}` : ''}`}
       style={{ transform, zIndex: 100 - depth, opacity: depth > 2 ? 0 : 1 }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -108,6 +110,9 @@ function SwipeCard({ item, onDecide, depth }) {
       <p className="card-text">{item.text}</p>
 
       <div className="card-foot">
+        {prio && (
+          <span className={`chip prio ${prio}`}>{prio === 'high' ? '★ High' : 'Medium'}</span>
+        )}
         {item.assignee && <span className="chip">@ {item.assignee}</span>}
         {item.timely && <span className="chip warn">⏱ follow-up</span>}
         {item.suggestedDue && (
